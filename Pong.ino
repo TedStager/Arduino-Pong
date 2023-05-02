@@ -3,8 +3,8 @@
 #include <string.h>
 
 #define CS 10
-#define DC 9
-#define RST 8
+#define DC 9 // data/command toggle
+#define RST 8 // reset
 #define INPUT A0
 
 #define PADDLE_LENGTH 25
@@ -58,7 +58,7 @@ void logVec(Vec2 vector, String label) {
 
 class Ball {
 private:
-  Vec2 vel;
+  Vec2 vel; 
   Vec2 pos;
 
   bool checkCollision() {
@@ -100,14 +100,10 @@ public:
 
     // update x pixel and y pixel by pixel to see if we collide
     while (pos != newPos) {
-      if (pos.x != newPos.x && vel.x != 0) {
+      if (pos.x != newPos.x && vel.x != 0) 
         pos.x += vel.x / abs(vel.x);
-      }
-        
-      if (checkCollision())
-        break;
-
-      if (pos.y != newPos.y && vel.y != 0)
+      
+      if (pos.y != newPos.y && vel.y != 0) 
         pos.y += vel.y / abs(vel.y);
 
       if (checkCollision())
@@ -140,7 +136,7 @@ void setup() {
 
   Serial.begin(9600);
 
-  Vec2 velocity(0, 2);
+  Vec2 velocity(3, 4);
   ball = new Ball(velocity);
 }
 
