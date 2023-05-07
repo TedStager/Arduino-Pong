@@ -40,9 +40,10 @@ class Paddle {
 private:
   int pos; // vertical position
   const int col;
+  const bool npc; // non-player controlled, will add tracking function
 
 public:
-  Paddle (int column);
+  Paddle (int column, bool playerControlled);
 
   Vec2 getPos() const;
 
@@ -95,8 +96,8 @@ void setup() {
   oldBallPos = new Vec2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2); // here oldPos also acts as the start position
   ball = new Ball(velocity, *oldBallPos);
   
-  P1 = new Paddle(P1COL);
-  P2 = new Paddle(P2COL)
+  P1 = new Paddle(P1COL, true); // p1 is player controlled
+  P2 = new Paddle(P2COL, false); // p2 is not
   oldP1Pos = new Vec2(P1->getPos());
   oldP2Pos = new Vec2(P2->getPos());
 }
@@ -110,13 +111,18 @@ void loop() { // game function
   erasePaddle(*oldP1Pos);
   drawPaddle(P1->getPos());
 
+  erasePaddle(*oldP2Pos);
+  drawPaddle(P2->getPos());
+
   eraseBall(*oldBallPos);
   drawBall(ball->getPos());
 
   *oldBallPos = ball->getPos();
   *oldP1Pos = P1->getPos();
+  *oldP2Pos = P2->getPos();
   ball->update(P1, P2);
   P1->update();
+  P2->update();
 
   // delay a tiny amount so that the game doesn't break on faster hardware
   delayMicroseconds(10);
@@ -154,8 +160,6 @@ Vec2 Vec2::operator + (const Vec2 &other) {
   return newVec;
 }
 
-
-
 void logVec(Vec2 vector, String label) {
   Serial.print(label + " x: ");
   Serial.println(vector.x);
@@ -178,15 +182,23 @@ bool Ball::checkCollision(Paddle* P1, Paddle* P2) {
 
   // paddle 1 collision
   // collision on top
-  if ((pos.x == P1COL + PADDLE_WIDTH) && (pos.y > (P1->getPos()).y && pos.y < (P1->getPos()).y)) {
+  if (pos.x == P1COL + PADDLE_WIDTH 
+      && pos.y > (P1->getPos()).y 
+      && pos.y + BALL_SIZE < (P1->getPos()).y + PADDLE_LENGTH) 
+  {
     vel.x *= -1;
     return true;
   }
+
   // collision on bottom
-  if ((pos.x + BALL_SIZE == P1COL) && (pos.y > (P1->getPos()).y && pos.y + BALL_SIZE < (P1->getPos()).y)) {
+  if (pos.x + BALL_SIZE == P1COL 
+      && pos.y > (P1->getPos()).y 
+      && pos.y + BALL_SIZE < (P1->getPos()).y + PADDLE_LENGTH) 
+  {
     vel.x *= -1;
     return true;
   }
+
   // collision on left
   if ((pos.y + BALL_SIZE == (P1->getPos()).y) && (pos.x == P1COL)) {
     vel.y *= -1;
@@ -200,27 +212,36 @@ bool Ball::checkCollision(Paddle* P1, Paddle* P2) {
 
   // paddle 2 collision
   // collision on top
-  if ((pos.x == P2COL + PADDLE_WIDTH) && (pos.y > (P2->getPos()).y && pos.y < (P2->getPos()).y)) {
+  if (pos.x == P2COL + PADDLE_WIDTH 
+      && pos.y > (P2->getPos()).y 
+      && pos.y + BALL_SIZE < (P2->getPos()).y + PADDLE_LENGTH) 
+  {
     vel.x *= -1;
     return true;
   }
+
   // collision on bottom
-  if ((pos.x + BALL_SIZE == P2COL) && (pos.y > (P2->getPos()).y && pos.y + BALL_SIZE < (P2->getPos()).y)) {
+  if (pos.x + BALL_SIZE == P2COL 
+      && pos.y > (P2->getPos()).y 
+      && pos.y + BALL_SIZE < (P2->getPos()).y + PADDLE_LENGTH) 
+  {
     vel.x *= -1;
     return true;
   }
+
   // collision on left
   if ((pos.y + BALL_SIZE == (P2->getPos()).y) && (pos.x == P2COL)) {
     vel.y *= -1;
     return true;
   }
+
   // collision on right
   if ((pos.y == (P2->getPos()).y + PADDLE_LENGTH) && (pos.x == P2COL)) {
     vel.y *= -1;
     return true;
   }
 
-  // no case was triggered
+  // no case was triggered, catch-all
   return false;
 }
 
@@ -256,8 +277,8 @@ void Ball::update (Paddle* P1, Paddle* P2) {
 
 // ============ PADDLE FUNCTION DEFINITIONS ===========
 
-Paddle::Paddle (int column) : col(column) {
-  pos = SCREEN_HEIGHT / 2 + PADDLE_LENGTH / 2;
+Paddle::Paddle (int column, bool playerControlled) : col(column), npc(!playerControlled) {
+  pos = SCREEN_HEIGHT / 2 - PADDLE_LENGTH / 2;
 }
 
 Vec2 Paddle::getPos() const {
@@ -265,9 +286,11 @@ Vec2 Paddle::getPos() const {
 }
 
 void Paddle::update () {
-  float percent = analogRead(INPUT) / 1024.0;
-  pos = SCREEN_HEIGHT * percent - PADDLE_LENGTH;
-  if (pos < 0) pos = 0; // disallow negative position
+  if (!npc) {
+    float percent = analogRead(INPUT) / 1024.0;
+    pos = SCREEN_HEIGHT * percent - PADDLE_LENGTH;
+    if (pos < 0) pos = 0; // disallow negative position
+  }
 }
 
 // ============= DRAW FUNCTION DEFINITIONS ============
